@@ -55,7 +55,7 @@ export default class TextFit extends React.Component {
         ready: false
     }
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.handleWindowResize = throttle(this.handleWindowResize, this.props.throttle);
     }
 
@@ -95,15 +95,15 @@ export default class TextFit extends React.Component {
         const originalWidth = innerWidth(el);
         const originalHeight = innerHeight(el);
 
-        if (originalHeight <= 0 || isNaN(originalHeight)) {
-            console.warn('Can not process element without height. Make sure the element is displayed and has a static height.');
-            return;
-        }
+        // if (originalHeight <= 0 || isNaN(originalHeight)) {
+        //     console.warn('Can not process element without height. Make sure the element is displayed and has a static height.');
+        //     return;
+        // }
 
-        if (originalWidth <= 0 || isNaN(originalWidth)) {
-            console.warn('Can not process element without width. Make sure the element is displayed and has a static width.');
-            return;
-        }
+        // if (originalWidth <= 0 || isNaN(originalWidth)) {
+        //     console.warn('Can not process element without width. Make sure the element is displayed and has a static width.');
+        //     return;
+        // }
 
         const pid = uniqueId();
         this.pid = pid;
