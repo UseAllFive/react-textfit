@@ -25,13 +25,11 @@ export default class TextFit extends React.Component {
         text: PropTypes.string,
         min: PropTypes.number,
         max: PropTypes.number,
-        mode: PropTypes.oneOf([
-            'single', 'multi'
-        ]),
+        mode: PropTypes.oneOf(['single', 'multi']),
         forceSingleModeWidth: PropTypes.bool,
         throttle: PropTypes.number,
-        onReady: PropTypes.func
-    }
+        onReady: PropTypes.func,
+    };
 
     static defaultProps = {
         min: 1,
@@ -40,8 +38,8 @@ export default class TextFit extends React.Component {
         forceSingleModeWidth: true,
         throttle: 50,
         autoResize: true,
-        onReady: noop
-    }
+        onReady: noop,
+    };
 
     constructor(props) {
         super(props);
@@ -52,9 +50,10 @@ export default class TextFit extends React.Component {
 
     state = {
         fontSize: null,
-        ready: false
-    }
+        ready: false,
+    };
 
+    // eslint-disable-next-line camelcase
     UNSAFE_componentWillMount() {
         this.handleWindowResize = throttle(this.handleWindowResize, this.props.throttle);
     }
@@ -85,7 +84,7 @@ export default class TextFit extends React.Component {
 
     handleWindowResize = () => {
         this.process();
-    }
+    };
 
     process() {
         const { min, max, mode, forceSingleModeWidth, onReady } = this.props;
@@ -110,83 +109,83 @@ export default class TextFit extends React.Component {
 
         const shouldCancelProcess = () => pid !== this.pid;
 
-        const testPrimary = mode === 'multi'
-            ? () => assertElementFitsHeight(wrapper, originalHeight)
-            : () => assertElementFitsWidth(wrapper, originalWidth);
+        const testPrimary = mode === 'multi' ? () => assertElementFitsHeight(wrapper, originalHeight) : () => assertElementFitsWidth(wrapper, originalWidth);
 
-        const testSecondary = mode === 'multi'
-            ? () => assertElementFitsWidth(wrapper, originalWidth)
-            : () => assertElementFitsHeight(wrapper, originalHeight);
+        const testSecondary = mode === 'multi' ? () => assertElementFitsWidth(wrapper, originalWidth) : () => assertElementFitsHeight(wrapper, originalHeight);
 
         let mid;
         let low = min;
         let high = max;
 
-        this.setState({ ready: false});
+        this.setState({ ready: false });
 
-        series([
-            // Step 1:
-            // Binary search to fit the element's height (multi line) / width (single line)
-            stepCallback => whilst(
-                () => low <= high,
-                whilstCallback => {
-                    if (shouldCancelProcess()) return whilstCallback(true);
-                    mid = parseInt((low + high) / 2, 10);
-                    this.setState({ fontSize: mid }, () => {
-                        if (shouldCancelProcess()) return whilstCallback(true);
-                        if (testPrimary()) low = mid + 1;
-                        else high = mid - 1;
-                        return whilstCallback();
-                    });
+        series(
+            [
+                // Step 1:
+                // Binary search to fit the element's height (multi line) / width (single line)
+                (stepCallback) =>
+                    whilst(
+                        () => low <= high,
+                        (whilstCallback) => {
+                            if (shouldCancelProcess()) return whilstCallback(true);
+                            mid = parseInt((low + high) / 2, 10);
+                            this.setState({ fontSize: mid }, () => {
+                                if (shouldCancelProcess()) return whilstCallback(true);
+                                if (testPrimary()) low = mid + 1;
+                                else high = mid - 1;
+                                return whilstCallback();
+                            });
+                        },
+                        stepCallback
+                    ),
+                // Step 2:
+                // Binary search to fit the element's width (multi line) / height (single line)
+                // If mode is single and forceSingleModeWidth is true, skip this step
+                // in order to not fit the elements height and decrease the width
+                (stepCallback) => {
+                    if (mode === 'single' && forceSingleModeWidth) return stepCallback();
+                    if (testSecondary()) return stepCallback();
+                    low = min;
+                    high = mid;
+                    return whilst(
+                        () => low < high,
+                        (whilstCallback) => {
+                            if (shouldCancelProcess()) return whilstCallback(true);
+                            mid = parseInt((low + high) / 2, 10);
+                            this.setState({ fontSize: mid }, () => {
+                                if (pid !== this.pid) return whilstCallback(true);
+                                if (testSecondary()) low = mid + 1;
+                                else high = mid - 1;
+                                return whilstCallback();
+                            });
+                        },
+                        stepCallback
+                    );
                 },
-                stepCallback
-            ),
-            // Step 2:
-            // Binary search to fit the element's width (multi line) / height (single line)
-            // If mode is single and forceSingleModeWidth is true, skip this step
-            // in order to not fit the elements height and decrease the width
-            stepCallback => {
-                if (mode === 'single' && forceSingleModeWidth) return stepCallback();
-                if (testSecondary()) return stepCallback();
-                low = min;
-                high = mid;
-                return whilst(
-                    () => low < high,
-                    whilstCallback => {
-                        if (shouldCancelProcess()) return whilstCallback(true);
-                        mid = parseInt((low + high) / 2, 10);
-                        this.setState({ fontSize: mid }, () => {
-                            if (pid !== this.pid) return whilstCallback(true);
-                            if (testSecondary()) low = mid + 1;
-                            else high = mid - 1;
-                            return whilstCallback();
-                        });
-                    },
-                    stepCallback
-                );
-            },
-            // Step 3
-            // Limits
-            stepCallback => {
-                // We break the previous loop without updating mid for the final time,
-                // so we do it here:
-                mid = Math.min(low, high);
+                // Step 3
+                // Limits
+                (stepCallback) => {
+                    // We break the previous loop without updating mid for the final time,
+                    // so we do it here:
+                    mid = Math.min(low, high);
 
-                // Ensure we hit the user-supplied limits
-                mid = Math.max(mid, min);
-                mid = Math.min(mid, max);
+                    // Ensure we hit the user-supplied limits
+                    mid = Math.max(mid, min);
+                    mid = Math.min(mid, max);
 
-                // Sanity check:
-                mid = Math.max(mid, 0);
+                    // Sanity check:
+                    mid = Math.max(mid, 0);
 
-                if (shouldCancelProcess()) return stepCallback(true);
-                this.setState({ fontSize: mid }, stepCallback);
+                    if (shouldCancelProcess()) return stepCallback(true);
+                    this.setState({ fontSize: mid }, stepCallback);
+                },
+            ],
+            (err) => {
+                // err will be true, if another process was triggered
+                if (err || shouldCancelProcess()) return;
+                this.setState({ ready: true }, () => onReady(mid));
             }
-        ], err => {
-            // err will be true, if another process was triggered
-            if (err || shouldCancelProcess()) return;
-            this.setState({ ready: true }, () => onReady(mid));
-        });
+        );
     }
 
     render() {
@@ -209,23 +208,18 @@ export default class TextFit extends React.Component {
         const { fontSize, ready } = this.state;
         const finalStyle = {
             ...style,
-            fontSize: fontSize
+            fontSize: fontSize,
         };
 
         const wrapperStyle = {
-            display: ready ? 'block' : 'inline-block'
+            display: ready ? 'block' : 'inline-block',
         };
         if (mode === 'single') wrapperStyle.whiteSpace = 'nowrap';
 
         return (
-            <div ref={c => this._parent = c} style={finalStyle} {...props}>
-                <div ref={c => this._child = c} style={wrapperStyle}>
-                    {text && typeof children === 'function'
-                        ? ready
-                            ? children(text)
-                            : text
-                        : children
-                    }
+            <div ref={(c) => (this._parent = c)} style={finalStyle} {...props}>
+                <div ref={(c) => (this._child = c)} style={wrapperStyle}>
+                    {text && typeof children === 'function' ? (ready ? children(text) : text) : children}
                 </div>
             </div>
         );
