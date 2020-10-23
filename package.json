@@ -2,7 +2,7 @@
   "name": "react-textfit",
   "version": "1.1.1",
   "description": "React component to fit headlines and paragraphs into any element",
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "scripts": {
     "clean": "rimraf lib dist",
     "build": "babel src --out-dir lib",
